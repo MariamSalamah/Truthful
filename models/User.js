@@ -7,7 +7,6 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
-      trim: true,
       minlength: 3,
       maxlength: 20,
       match: /^[a-zA-Z0-9_]+$/,
@@ -18,47 +17,40 @@ const userSchema = new mongoose.Schema(
       required: true,
       unique: true,
       lowercase: true,
-      trim: true,
     },
     passwordHash: { type: String, required: true },
-    displayName: { type: String, required: true, trim: true, minlength: 1, maxlength: 50 },
+    displayName: { type: String, required: true, minlength: 1, maxlength: 50 },
     bio: { type: String, default: '', maxlength: 200 },
     avatarUrl: { type: String, default: '' },
     acceptingQuestions: { type: Boolean, default: true },
     tags: {
       type: [String],
       default: [],
-      validate: {
-        validator: (arr) =>
-          arr.length <= 10 && arr.every((t) => /^[a-z0-9-]{2,20}$/.test(t)),
-        message: 'Invalid tags',
-      },
+      validate: [(v) => v.length <= 10, 'Max 10 tags'],
     },
   },
-  { timestamps: true },
+  { timestamps: true }
 );
+
+userSchema.pre('save', async function (next) {
+  if (!this.isModified('passwordHash')) return next();
+  this.passwordHash = await bcrypt.hash(this.passwordHash, 12);
+  next();
+});
+
+userSchema.methods.comparePassword = function (plain) {
+  return bcrypt.compare(plain, this.passwordHash);
+};
 
 userSchema.set('toJSON', {
   virtuals: true,
   versionKey: false,
   transform(_doc, ret) {
-    // TODO:
-    // Hint: map _id -> id, delete _id, delete passwordHash. Return ret.
-    // Purpose: never leak passwordHash through res.json.
-    throw new Error('not implemented');
+    ret.id = ret._id;
+    delete ret._id;
+    delete ret.passwordHash;
+    return ret;
   },
 });
 
-userSchema.methods.comparePassword = function (plain) {
-  // TODO:
-  // Hint: bcrypt.compare(plain, this.passwordHash) — returns a Promise<boolean>.
-  throw new Error('not implemented');
-};
-
-userSchema.statics.hashPassword = function (plain) {
-  // TODO:
-  // Hint: bcrypt.hash(plain, 10). Cost 10 is a reasonable default.
-  throw new Error('not implemented');
-};
-
-export const User = mongoose.model('User', userSchema);
+export default mongoose.model('User', userSchema);

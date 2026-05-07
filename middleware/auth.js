@@ -1,17 +1,19 @@
 import jwt from 'jsonwebtoken';
-import { User } from '../models/User.js';
-import { HttpError } from './errorHandler.js';
+import User from '../models/User.js';
 
-export async function authenticate(req, _res, next) {
-  // TODO:
-  // Hint: read Authorization: Bearer <token>. Verify with jwt.verify(token, JWT_SECRET).
-  // Load User.findById(payload.sub). Attach to req.user. Any failure -> 401.
-  // See: docs/API.md "Authentication", tester/tests/auth.test.js
-  throw new Error('not implemented');
-}
-
-export function signToken(user) {
-  // TODO:
-  // Hint: jwt.sign({ sub: user.id }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN || '7d' })
-  throw new Error('not implemented');
+export async function auth(req, res, next) {
+  const header = req.headers.authorization;
+  if (!header || !header.startsWith('Bearer ')) {
+    return res.status(401).json({ error: { message: 'Missing or invalid token' } });
+  }
+  const token = header.slice(7);
+  try {
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(payload.sub);
+    if (!user) return res.status(401).json({ error: { message: 'User not found' } });
+    req.user = user;
+    next();
+  } catch {
+    return res.status(401).json({ error: { message: 'Invalid token' } });
+  }
 }

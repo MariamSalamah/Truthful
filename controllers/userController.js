@@ -1,18 +1,18 @@
-import { User } from '../models/User.js';
-import { HttpError } from '../middleware/errorHandler.js';
+import User from '../models/User.js';
 
-export async function getPublicProfile(req, res, next) {
-  // TODO:
-  // Hint: User.findOne({ username }). 404 if missing. Exclude email + passwordHash from response.
-  // See: docs/API.md "GET /api/users/:username", tester/tests/profile.test.js
-  throw new Error('not implemented');
+export async function getPublicProfile(req, res) {
+  const user = await User.findOne({ username: req.params.username })
+    .select('-email -passwordHash');
+  if (!user) return res.status(404).json({ error: { message: 'User not found' } });
+  return res.status(200).json(user.toJSON());
 }
 
-export async function updateMe(req, res, next) {
-  // TODO:
-  // Hint: whitelist fields a user may update: displayName, bio, avatarUrl, acceptingQuestions, tags.
-  // Silently IGNORE username / email even if sent — they are immutable here.
-  // Use findByIdAndUpdate with { new: true, runValidators: true }.
-  // See: docs/API.md "PATCH /api/users/me", tester/tests/profile.test.js
-  throw new Error('not implemented');
+export async function updateMe(req, res) {
+  const allowed = ['displayName', 'bio', 'avatarUrl', 'acceptingQuestions', 'tags'];
+  const updates = {};
+  for (const key of allowed) {
+    if (req.body[key] !== undefined) updates[key] = req.body[key];
+  }
+  const user = await User.findByIdAndUpdate(req.user._id, updates, { new: true, runValidators: true });
+  return res.status(200).json(user.toJSON());
 }

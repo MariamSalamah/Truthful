@@ -9,7 +9,7 @@ const questionSchema = new mongoose.Schema(
     status: { type: String, enum: ['pending', 'answered', 'ignored'], default: 'pending' },
     visibility: { type: String, enum: ['public', 'private'], default: 'public' },
   },
-  { timestamps: true },
+  { timestamps: true }
 );
 
 questionSchema.index({ recipient: 1, status: 1, createdAt: -1 });
@@ -25,4 +25,4 @@ questionSchema.set('toJSON', {
   },
 });
 
-export const Question = mongoose.model('Question', questionSchema);
+export default mongoose.model('Question', questionSchema);

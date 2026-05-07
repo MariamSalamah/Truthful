@@ -1,28 +1,37 @@
-import { User } from '../models/User.js';
-import { signToken } from '../middleware/auth.js';
-import { HttpError } from '../middleware/errorHandler.js';
+import jwt from 'jsonwebtoken';
+import User from '../models/User.js';
 
-export async function signup(req, res, next) {
-  // TODO:
-  // Hint: validate already ran (see routes). Pull { username, email, password, displayName } from req.body.
-  // Check duplicate email/username -> 409. Hash password with User.hashPassword, create user,
-  // signToken(user), respond 201 { token, user }. toJSON strips passwordHash automatically.
-  // Mongo duplicate-key errors (err.code === 11000) must also become 409.
-  // See: docs/API.md "POST /api/auth/signup", tester/tests/auth.test.js
-  throw new Error('not implemented');
+function signToken(userId) {
+  return jwt.sign({ sub: userId }, process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+  });
 }
 
-export async function login(req, res, next) {
-  // TODO:
-  // Hint: find user by email. If missing OR comparePassword fails, 401 with a GENERIC message
-  // (don't leak which half was wrong). On success return { token, user }.
-  // See: docs/API.md "POST /api/auth/login", tester/tests/auth.test.js
-  throw new Error('not implemented');
+export async function signup(req, res) {
+  const { username, email, password, displayName } = req.body;
+  try {
+    const user = new User({ username, email, passwordHash: password, displayName });
+    await user.save();
+    const token = signToken(user._id);
+    return res.status(201).json({ token, user: user.toJSON() });
+  } catch (err) {
+    if (err.code === 11000) {
+      return res.status(409).json({ error: { message: 'Username or email already exists' } });
+    }
+    throw err;
+  }
+}
+
+export async function login(req, res) {
+  const { email, password } = req.body;
+  const user = await User.findOne({ email });
+  if (!user || !(await user.comparePassword(password))) {
+    return res.status(401).json({ error: { message: 'Invalid credentials' } });
+  }
+  const token = signToken(user._id);
+  return res.status(200).json({ token, user: user.toJSON() });
 }
 
 export async function me(req, res) {
-  // TODO:
-  // Hint: authenticate middleware has already attached the user — just return it.
-  // See: docs/API.md "GET /api/auth/me", tester/tests/auth.test.js
-  throw new Error('not implemented');
+  return res.status(200).json(req.user.toJSON());
 }
