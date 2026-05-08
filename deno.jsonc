@@ -1,7 +1,7 @@
-// {
-//   "deploy": {
-//     "org": "mosaleh-dev",
-//     "app": "whisper"
-//   }
-// }
+ {
+   "deploy": {
+     "org": "mariamsalamah",
+     "app": "whisper"
+  }
+ }
 
