@@ -2,7 +2,9 @@ import RateLimitHit from '../models/RateLimitHit.js';
 
 export function rateLimit({ max = 10 } = {}) {
   return async (req, res, next) => {
-    const ip = req.ip || req.connection.remoteAddress || 'unknown';
+    const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() 
+              || req.ip 
+              || 'unknown';
     const username = req.params.username || '';
     const windowStart = new Date(Math.floor(Date.now() / 3600000) * 3600000);
     const key = `ip:${ip}:username:${username}`;
